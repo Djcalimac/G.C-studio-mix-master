@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>G.C Studio Mix&Master — Gc v1/02</title>
+  <style>
+    :root{
+      color-scheme: dark;
+      --bg:#07070a;
+      --panel:#0c0d12;
+      --panel2:#0a0b10;
+      --line:#1e2233;
+      --text:#eaf0ff;
+      --muted:#a8b3d6;
+
+      --mix:#3a82ff;     /* blue */
+      --master:#ffb25a;  /* amber */
+      --bad:#ff6b6b;
+      --good:#52ffa8;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial;
+      background: radial-gradient(1200px 600px at 50% 0%, rgba(58,130,255,.10), transparent 55%),
+                  radial-gradient(1200px 700px at 50% 120%, rgba(255,178,90,.06), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      overflow-x:hidden;
+    }
+
+    /* Smoky overlay */
+    .smoke{
+      pointer-events:none;
+      position:fixed; inset:-20%;
+      background:
+        radial-gradient(700px 400px at 30% 40%, rgba(255,255,255,.06), transparent 60%),
+        radial-gradient(900px 500px at 70% 60%, rgba(255,255,255,.05), transparent 62%),
+        radial-gradient(800px 500px at 50% 80%, rgba(255,255,255,.04), transparent 65%);
+      filter: blur(18px);
+      opacity:.35;
+      animation: drift 18s linear infinite;
+      mix-blend-mode: screen;
+    }
+    @keyframes drift{
+      0%{transform:translate3d(-2%, -1%, 0) rotate(0deg)}
+      50%{transform:translate3d(2%, 1%, 0) rotate(1deg)}
+      100%{transform:translate3d(-2%, -1%, 0) rotate(0deg)}
+    }
+
+    header{
+      position:sticky; top:0; z-index:20;
+      background: linear-gradient(180deg, rgba(7,7,10,.98), rgba(7,7,10,.82));
+      border-bottom:1px solid var(--line);
+      backdrop-filter: blur(8px);
+      padding:14px 14px 10px;
+    }
+    .brand{
+      display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
+      max-width:980px; margin:0 auto;
+    }
+    .title{display:flex; flex-direction:column; gap:4px;}
+    h1{margin:0; font-size:15px; letter-spacing:.3px}
+    .sub{font-size:12px; color:var(--muted)}
+    .stepbar{display:flex; align-items:center; gap:10px; font-size:12px; color:var(--muted);}
+    .led{
+      width:10px; height:10px; border-radius:999px;
+      background: rgba(255,255,255,.12);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.10) inset;
+    }
+    .led.mix{background: rgba(58,130,255,.65); box-shadow: 0 0 12px rgba(58,130,255,.35), 0 0 0 1px rgba(58,130,255,.35) inset;}
+    .led.master{background: rgba(255,178,90,.70); box-shadow: 0 0 14px rgba(255,178,90,.35), 0 0 0 1px rgba(255,178,90,.35) inset;}
+    .led.bad{background: rgba(255,107,107,.75); box-shadow: 0 0 14px rgba(255,107,107,.35), 0 0 0 1px rgba(255,107,107,.35) inset;}
+
+    main{max-width:980px; margin:0 auto; padding:14px; display:grid; gap:12px}
+    .card{
+      background: linear-gradient(180deg, rgba(12,13,18,.92), rgba(10,11,16,.88));
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      box-shadow: 0 10px 22px rgba(0,0,0,.35);
+      position:relative;
+      overflow:hidden;
+    }
+    .card::before{
+      content:"";
+      position:absolute; inset:0;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), transparent 30%);
+      pointer-events:none;
+    }
+    .rackEdge{
+      position:absolute; left:0; right:0; bottom:0; height:2px;
+      background: linear-gradient(90deg, transparent, rgba(58,130,255,.40), transparent);
+      opacity:.65;
+      pointer-events:none;
+    }
+    .rackEdge.master{background: linear-gradient(90deg, transparent, rgba(255,178,90,.45), transparent);}
+
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between}
+    .grid{display:grid; gap:10px}
+    .muted{color:var(--muted); font-size:12px}
+    .big{font-size:14px; font-weight:650; letter-spacing:.2px}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+
+    .btn{
+      border:1px solid #2c3350;
+      background: #070812;
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .05s ease, border-color .2s ease;
+      user-select:none;
+    }
+    .btn:hover{border-color:#3b4676}
+    .btn:active{transform: translateY(1px)}
+    .btn.primary{
+      border-color: rgba(58,130,255,.55);
+      box-shadow: 0 0 0 1px rgba(58,130,255,.20) inset, 0 0 18px rgba(58,130,255,.12);
+    }
+    .btn.primary.master{
+      border-color: rgba(255,178,90,.60);
+      box-shadow: 0 0 0 1px rgba(255,178,90,.22) inset, 0 0 18px rgba(255,178,90,.12);
+    }
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+    .btn.danger{
+      border-color: rgba(255,107,107,.55);
+      box-shadow: 0 0 0 1px rgba(255,107,107,.18) inset;
+    }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid #2c3350; font-size:12px; color:var(--muted);
+      background: rgba(0,0,0,.10);
+    }
+    .pill strong{color:var(--text); font-weight:650}
+    .pill.good{border-color: rgba(82,255,168,.35); color:#bfffdc}
+    .pill.bad{border-color: rgba(255,107,107,.35); color:#ffd1d1}
+
+    .meter{
+      height:10px; background:#070812; border:1px solid #2c3350; border-radius:999px; overflow:hidden;
+    }
+    .meter > div{height:100%; width:0%; background: linear-gradient(90deg, rgba(58,130,255,.9), rgba(255,178,90,.75));}
+
+    .slot{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      background: rgba(0,0,0,.10);
+      display:grid; gap:10px;
+    }
+    .slotTop{display:flex; align-items:center; justify-content:space-between; gap:10px}
+    .slotName{display:flex; align-items:center; gap:10px}
+    .slotName .label{font-weight:700; letter-spacing:.2px}
+    .slotHint{font-size:12px; color:var(--muted)}
+
+    .fileList{display:grid; gap:8px}
+    .fileRow{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+      padding:10px; border-radius:12px;
+      border:1px solid #232a44;
+      background: rgba(7,8,18,.75);
+    }
+    .fileMeta{display:grid; gap:2px}
+    .fileMeta .name{font-size:12px; font-weight:650}
+    .fileMeta .submeta{font-size:11px; color:var(--muted)}
+
+    .ledBtns{display:flex; gap:8px; flex-wrap:wrap}
+    .ledBtn{
+      border:1px solid #2c3350;
+      background: #070812;
+      color: var(--muted);
+      padding:7px 10px;
+      border-radius:10px;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+      position:relative;
+      transition: border-color .2s ease, color .2s ease, box-shadow .2s ease;
+    }
+    .ledBtn::before{
+      content:"";
+      width:7px; height:7px; border-radius:999px;
+      background: rgba(255,255,255,.10);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.10) inset;
+      display:inline-block;
+      margin-right:8px;
+      vertical-align:middle;
+    }
+    .ledBtn.on{
+      color: var(--text);
+      border-color: rgba(58,130,255,.55);
+      box-shadow: 0 0 0 1px rgba(58,130,255,.18) inset, 0 0 16px rgba(58,130,255,.10);
+    }
+    .ledBtn.on::before{
+      background: rgba(58,130,255,.75);
+      box-shadow: 0 0 12px rgba(58,130,255,.32), 0 0 0 1px rgba(58,130,255,.35) inset;
+    }
+    .masterMode .ledBtn.on{
+      border-color: rgba(255,178,90,.62);
+      box-shadow: 0 0 0 1px rgba(255,178,90,.20) inset, 0 0 16px rgba(255,178,90,.10);
+    }
+    .masterMode .ledBtn.on::before{
+      background: rgba(255,178,90,.78);
+      box-shadow: 0 0 14px rgba(255,178,90,.35), 0 0 0 1px rgba(255,178,90,.38) inset;
+    }
+
+    .notice{
+      border:1px solid #2c3350;
+      background: rgba(0,0,0,.10);
+      padding:10px 12px;
+      border-radius:14px;
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.35;
+    }
+    .notice strong{color:var(--text)}
+    .notice.bad{border-color: rgba(255,107,107,.45); color:#ffd1d1}
+    .notice.good{border-color: rgba(82,255,168,.35); color:#bfffdc}
+
+    .checkboxRow{display:flex; gap:10px; align-items:center; font-size:12px; color:var(--muted)}
+    input[type="checkbox"]{transform:scale(1.2)}
+
+    .center{display:grid; place-items:center; text-align:center; gap:12px; padding:18px 14px;}
+    .bigTitle{font-size:18px; font-weight:800; letter-spacing:.4px}
+    .fade{opacity:.85}
+    .hidden{display:none!important}
+  </style>
+</head>
+<body>
+  <div class="smoke"></div>
+
+  <header>
+    <div class="brand">
+      <div class="title">
+        <h1>G.C Studio Mix&Master</h1>
+        <div class="sub">Gc v1/02 • After Hours Studio Wizard • Suno / AI stems only • Mix → Health Scan → Master → One Render</div>
+      </div>
+      <div class="stepbar">
+        <span class="led mix" id="stageLed"></span>
+        <span id="stepText">Step 0 of 8</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card" id="screen">
+      <div class="rackEdge" id="rackEdge"></div>
+      <div id="content"></div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="backBtn">Back</button>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+          <span class="pill" id="pillLimits"><strong>Limits</strong> ≤75MB each • ≤5:00 • exact length match</span>
+          <button class="btn primary" id="nextBtn">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="statusCard">
+      <div class="row">
+        <div style="display:grid; gap:6px">
+          <div class="big">Session Status</div>
+          <div class="muted" id="statusLine">Idle.</div>
+        </div>
+        <div style="min-width:320px; flex:1">
+          <div class="muted">Progress</div>
+          <div class="meter"><div id="bar"></div></div>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:10px">
+        <div class="notice" id="reportBox">
+          <strong>Report:</strong> Upload stems through the wizard to continue.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FULL APP SCRIPT IS EMBEDDED BELOW -->
+  <!-- NOTE: due to message size limits, the full embedded script is included in the downloadable file, not in this chat block. -->
+</body>
+</html>
